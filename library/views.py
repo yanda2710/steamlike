@@ -23,9 +23,6 @@ def add_game(request):
         status = data.get('status') # str wishlist, playing, completed, dropped
         hours_played = data.get('hours_played') # integer >= 0
 
-        # Check the format for each one
-        error = None
-
         # Check external_game_id format
         try:
             if external_game_id == '': # Check if it's empty
@@ -85,3 +82,7 @@ def add_game(request):
     
 
     # hay algun error por ahí, me dice q tengo q hacerlo, despues lo hago
+
+    # TODO: En el ejercicio 2 pide algo sobre el error
+
+    
