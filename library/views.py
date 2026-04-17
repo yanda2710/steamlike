@@ -3,6 +3,9 @@ from django.http import JsonResponse
 from .models import LibraryEntry
 from django.views.decorators.http import require_GET
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 @require_GET
