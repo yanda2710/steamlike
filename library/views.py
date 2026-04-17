@@ -24,11 +24,22 @@ def duplicate_entry_response():
         "details": {"external_game_id": "duplicate"}
     }, status=400)
 
-# POST /library/add_game, json body: { "external_game_id": "str", "status": "str", "hours_played": integer }
-# Add a game to the DB
+# url /library/entries
+
+# GET
+    # Get all library entries in the DB
+    # Función definida más abajo para mantener el código organizado, y porque es un GET, no un POST
+
+# POST
+    # Add a game to the DB
+    # json body: { "external_game_id": "str", "status": "str", "hours_played": integer }
+
 @csrf_exempt
 def add_game(request):
-    if request.method == "POST":
+    if request.method == "GET":
+        return get_entries(request)
+
+    elif request.method == "POST":
 
         # Get all data from user
         data = json.loads(request.body)
@@ -89,3 +100,33 @@ def add_game(request):
     else:
         return JsonResponse({"error": "Invalid request method"}, status=400)
 
+# GET /api/library/entries
+@require_GET
+def get_entries(request):
+    entries = LibraryEntry.objects.all()
+    entries_data = []
+    for entry in entries:
+        entries_data.append({
+            # "id": entry.id,
+            "external_game_id": entry.external_game_id,
+            "status": entry.status,
+            "hours_played": entry.hours_played
+        })
+    return JsonResponse({"All entries": entries_data}, status=200)
+
+# GET /api/library/entries/{external_game_id}/
+@require_GET
+def get_entry(request, external_game_id):
+    if not LibraryEntry.objects.filter(external_game_id=external_game_id).exists():
+        return JsonResponse({
+            "error": "not_found",
+            "message": "La entrada solicitada no existe"
+            }, status=404)
+    
+    entry = LibraryEntry.objects.get(external_game_id=external_game_id)
+
+    return JsonResponse({
+        "external_game_id": entry.external_game_id,
+        "status": entry.status,
+        "hours_played": entry.hours_played
+    }, status=200)
