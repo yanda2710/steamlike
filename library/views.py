@@ -9,58 +9,68 @@ from django.views.decorators.csrf import csrf_exempt
 def health(request):
     return JsonResponse({"status": "ok"})
 
-# POST /library/add_game, json body: { 'external_game_id': 'str', 'status': 'str', 'hours_played': integer }
+# Helper function to return a JSON response with error details
+def error_response(errors):
+    return JsonResponse({
+        "error": "validation_error",
+        "message": "Datos de entrada inválidos",
+        "details": errors
+    }, status=400)
+
+def duplicate_entry_response():
+    return JsonResponse({
+        "error": "duplicate_entry",
+        "message": "El juego ya existe en la biblioteca",
+        "details": {"external_game_id": "duplicate"}
+    }, status=400)
+
+# POST /library/add_game, json body: { "external_game_id": "str", "status": "str", "hours_played": integer }
 # Add a game to the DB
 @csrf_exempt
 def add_game(request):
-    if request.method == 'POST':
+    if request.method == "POST":
 
         # Get all data from user
         data = json.loads(request.body)
         
         # User data from the request body
-        external_game_id = data.get('external_game_id') # str
-        status = data.get('status') # str wishlist, playing, completed, dropped
-        hours_played = data.get('hours_played') # integer >= 0
+        external_game_id = data.get("external_game_id") # str
+        status = data.get("status") # str wishlist, playing, completed, dropped
+        hours_played = data.get("hours_played") # integer >= 0
+
+        # Diccionary to store all errors, it's JSON
+        errors = {}
 
         # Check external_game_id format
-        try:
-            if external_game_id == '': # Check if it's empty
-                raise ValueError('Cannot be empty')
-            if not isinstance(external_game_id, str): # Check if it's a string
-                raise TypeError('Must be a string')
-            if LibraryEntry.objects.filter(external_game_id=external_game_id).exists(): # Check if it already exists
-                raise ValueError('Already exists')
-
-        except (TypeError, ValueError) as e:
-            return JsonResponse({'error': str(e)}, status=400)
+        if external_game_id == "" or external_game_id is None: # Check if it's empty
+            errors["external_game_id"] = "Cannot be empty"
+        elif not isinstance(external_game_id, str): # Check if it's a string
+            errors["external_game_id"] = "Must be a string"
+        elif LibraryEntry.objects.filter(external_game_id=external_game_id).exists(): # Check if it already exists
+            return duplicate_entry_response()
 
         # Check status format
-        try:
-            if status == '': # Check if it's empty
-                raise ValueError('Cannot be empty')
-            if not isinstance(status, str): # Check if it's a string
-                raise TypeError('Must be a string')
-            if status not in LibraryEntry.ALLOWED_STATUSES: # Check if it's one of the allowed statuses
-                raise ValueError('Invalid status value or format (must be lowercase)')
-            
-        except (TypeError, ValueError) as e:
-            return JsonResponse({'error': str(e)}, status=400)
-        
+        if status == "" or status is None: # Check if it's empty
+            errors["status"] = "Cannot be empty"
+        elif not isinstance(status, str): # Check if it's a string
+            errors["status"] = "Must be a string"
+        elif status not in LibraryEntry.ALLOWED_STATUSES: # Check if it's one of the allowed statuses
+            errors["status"] = "Invalid status value or format (must be lowercase)"
 
         # Check hours_played format
-        try:
-            if hours_played == '': # Check if it's empty
-                raise ValueError('Cannot be empty')
-            if not isinstance(hours_played, int): # Check if it's an integer
-                raise TypeError('Must be a integer')
-            if hours_played < 0: # Check if it's greater than or equal to 0
-                raise ValueError('Must be greater than 0 or 0')
+        if hours_played == "" or hours_played is None: # Check if it's empty
+            errors["hours_played"] = "Cannot be empty"
+        elif not isinstance(hours_played, int): # Check if it's an integer
+            errors["hours_played"] = "Must be a integer"
+        elif hours_played < 0: # Check if it's greater than or equal to 0
+            errors["hours_played"] = "Must be greater than 0, or 0"
 
-        except (ValueError, TypeError):
-            return JsonResponse({'error': str(e)}, status=400)
+        # If there are any errors, return a JSON response with the error details
+        if errors:
+            return error_response(errors)
 
-        # If all the data is valid, create a new LibraryEntry and save it to the DB, same line
+        # If all the data is valid, create a new LibraryEntry and save it to the DB in the same line
+        # No need for entruy.save() because create() already saves the object to the DB
         entry = LibraryEntry.objects.create(
             external_game_id=external_game_id,
             status=status,
@@ -68,21 +78,14 @@ def add_game(request):
         )
 
         return JsonResponse({
-            'message': 'Game added successfully',
-            'entry': {
-                'id': entry.id,
-                'external_game_id': entry.external_game_id,
-                'status': entry.status,
-                'hours_played': entry.hours_played
+            "message": "Game added successfully",
+            "entry": {
+                "external_game_id": entry.external_game_id,
+                "status": entry.status,
+                "hours_played": entry.hours_played
             }
         }, status=201)
     
     else:
-        return JsonResponse({'error': 'Invalid request method'}, status=400)
-    
+        return JsonResponse({"error": "Invalid request method"}, status=400)
 
-    # hay algun error por ahí, me dice q tengo q hacerlo, despues lo hago
-
-    # TODO: En el ejercicio 2 pide algo sobre el error
-
-    
