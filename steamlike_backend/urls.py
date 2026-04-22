@@ -3,10 +3,19 @@ from django.urls import path, include
 from library.views import health
 from library.views import games, game_detailed
 
+from auth_api.views import register, login_view, check_login
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     # path("api/library/", include("core.urls")),
     path("api/health/", health),
+
+    # Auth API
+    path("api/auth/register/", register),
+    path("api/auth/login/", login_view),
+    path("api/users/me/", check_login),
+    
+    # Library API
     path("api/library/entries/", games),
     path("api/library/entries/<str:external_game_id>/", game_detailed),
 ]

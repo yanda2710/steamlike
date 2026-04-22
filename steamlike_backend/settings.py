@@ -36,6 +36,7 @@ INSTALLED_APPS = [
 
     # Local apps
     "library",
+    "auth_api",
 ]
 
 MIDDLEWARE = [
@@ -106,3 +107,6 @@ CSRF_TRUSTED_ORIGINS = _env_csv("DJANGO_CSRF_TRUSTED_ORIGINS", "http://frontend:
 # Dev defaults for cookies (keep simple; hardening can be done later)
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+
+# Usar nuestro modelo de usuario personalizado.
+AUTH_USER_MODEL = "auth_api.User"

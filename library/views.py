@@ -7,7 +7,6 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-
 @require_GET
 def health(request):
     return JsonResponse({"status": "ok"})
@@ -65,8 +64,13 @@ def get_entries(request):
 # POST /api/library/entries
 @csrf_exempt
 def add_game(request):
-    # Get all data from user
-    data = json.loads(request.body)
+    # Get all data from request
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            "error": "Invalid JSON data"
+            }, status=400)
         
     # User data from the request body
     external_game_id = data.get("external_game_id") # str
@@ -115,6 +119,7 @@ def add_game(request):
     return JsonResponse({
         "message": "Game added successfully",
         "entry": {
+            "id": entry.pk, # No sé si es necesario, pero lo dejo por si acaso
             "external_game_id": entry.external_game_id,
             "status": entry.status,
             "hours_played": entry.hours_played
@@ -170,8 +175,13 @@ def update_entry(request, external_game_id):
     # Get the entry to update
     entry = LibraryEntry.objects.get(external_game_id=external_game_id)
 
-    # Get all data from user
-    data = json.loads(request.body)
+    # Get all data from request
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            "error": "Invalid JSON data"
+            }, status=400)
 
     # Check if there's any data to update
     if not data:
