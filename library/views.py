@@ -74,6 +74,12 @@ def get_entries(request):
 # POST /api/library/entries
 @csrf_exempt
 def add_game(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "error": "unauthorized",
+            "message": "No autenticado"
+        }, status=401)
+
     # Get all data from request
     try:
         data = json.loads(request.body)
@@ -183,14 +189,19 @@ def get_entry(request, external_game_id):
 # PATCH /api/library/entries/{external_game_id}/
 @csrf_exempt
 def update_entry(request, external_game_id):
-    if not LibraryEntry.objects.filter(external_game_id=external_game_id).exists():
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "error": "unauthorized",
+            "message": "No autenticado"
+            }, status=401)
+    
+    try:
+        entry = LibraryEntry.objects.get(user=request.user, external_game_id=external_game_id) # Solo obtenemos la entrada que pertenece al usuario autenticado y tiene el external_game_id especificado
+    except LibraryEntry.DoesNotExist:
         return JsonResponse({
             "error": "not_found",
             "message": "La entrada solicitada no existe"
             }, status=404)
-    
-    # Get the entry to update
-    entry = LibraryEntry.objects.get(external_game_id=external_game_id)
 
     # Get all data from request
     try:
