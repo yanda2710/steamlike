@@ -48,9 +48,19 @@ def games(request):
         return JsonResponse({"error": "Invalid request method"}, status=400)
 
 # GET /api/library/entries
+    # Get all library entries in the DB by user
+    # Only return the entries that belong to the authenticated user (user field of the entry is equal to the authenticated user)
+
 @require_GET
 def get_entries(request):
-    entries = LibraryEntry.objects.all()
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "error": "unauthorized",
+            "message": "No autenticado"
+        }, status=401)
+    
+    entries = LibraryEntry.objects.filter(user=request.user) # Solo obtenemos las entradas que pertenecen al usuario autenticado
+    
     entries_data = []
     for entry in entries:
         entries_data.append({
@@ -59,7 +69,7 @@ def get_entries(request):
             "status": entry.status,
             "hours_played": entry.hours_played
         })
-    return JsonResponse({"All entries": entries_data}, status=200)
+    return JsonResponse({"Entries": entries_data}, status=200)
 
 # POST /api/library/entries
 @csrf_exempt
@@ -109,11 +119,12 @@ def add_game(request):
         return error_response(errors)
 
     # If all the data is valid, create a new LibraryEntry and save it to the DB in the same line
-    # No need for entruy.save() because create() already saves the object to the DB
+    # No need for entry.save() because create() already saves the object to the DB
     entry = LibraryEntry.objects.create(
         external_game_id=external_game_id,
         status=status,
-        hours_played=hours_played
+        hours_played=hours_played,
+        user=request.user if request.user.is_authenticated else None # Asignamos el usuario autenticado, o None si no hay ninguno (aunque en producción debería ser obligatorio estar autenticado para agregar juegos)
     )
 
     return JsonResponse({
@@ -149,14 +160,20 @@ def game_detailed(request, external_game_id):
 # GET /api/library/entries/{external_game_id}/
 @require_GET
 def get_entry(request, external_game_id):
-    if not LibraryEntry.objects.filter(external_game_id=external_game_id).exists():
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "error": "unauthorized",
+            "message": "No autenticado"
+            }, status=401)
+    
+    try:
+        entry = LibraryEntry.objects.get(user=request.user, external_game_id=external_game_id) # Solo obtenemos la entrada que pertenece al usuario autenticado y tiene el external_game_id especificado
+    except LibraryEntry.DoesNotExist:
         return JsonResponse({
             "error": "not_found",
             "message": "La entrada solicitada no existe"
             }, status=404)
     
-    entry = LibraryEntry.objects.get(external_game_id=external_game_id)
-
     return JsonResponse({
         "external_game_id": entry.external_game_id,
         "status": entry.status,
