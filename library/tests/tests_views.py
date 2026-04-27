@@ -53,4 +53,70 @@ class AuthenticationTests(TestCase):
         self.assertIn("password", response.json()["details"])
         self.assertEqual(response.json()["details"]["username"], "Cannot be empty")
         self.assertEqual(response.json()["details"]["password"], "Cannot be empty")
+
+    def test_register_invalid_username(self):
+        # Precondiciones
+        # Llamada (usando self.client y la ruta de la vista que queremos probar)
+        response = self.client.post("/api/auth/register/", data={
+            "username": "",
+            "password": "testpassword"
+        }, content_type="application/json")
+        
+        # Comprobaciones
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.json())
+        self.assertEqual(response.json()["error"], "validation_error")
+        self.assertIn("details", response.json())
+        self.assertIn("username", response.json()["details"])
+        self.assertEqual(response.json()["details"]["username"], "Cannot be empty")
+
+    def test_register_invalid_password(self):
+        # Precondiciones
+        # Llamada (usando self.client y la ruta de la vista que queremos probar)
+        response = self.client.post("/api/auth/register/", data={
+            "username": "testuser",
+            "password": ""
+        }, content_type="application/json")
+        
+        # Comprobaciones
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.json())
+        self.assertEqual(response.json()["error"], "validation_error")
+        self.assertIn("details", response.json())
+        self.assertIn("password", response.json()["details"])
+        self.assertEqual(response.json()["details"]["password"], "Cannot be empty")
+
+    def test_register_empty(self):
+        # Precondiciones
+        # Llamada (usando self.client y la ruta de la vista que queremos probar)
+        response = self.client.post("/api/auth/register/", data={}, content_type="application/json")
+        
+        # Comprobaciones
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.json())
+        self.assertEqual(response.json()["error"], "validation_error")
+        self.assertIn("details", response.json())
+        self.assertIn("username", response.json()["details"])
+        self.assertIn("password", response.json()["details"])
+        self.assertEqual(response.json()["details"]["username"], "Cannot be empty")
+        self.assertEqual(response.json()["details"]["password"], "Cannot be empty")
+
+    def test_register_duplicate(self):
+        # Precondiciones
+        User.objects.create_user(username="testuser", password="testpassword")
+
+        # Llamada (usando self.client y la ruta de la vista que queremos probar)
+        response = self.client.post("/api/auth/register/", data={
+            "username": "testuser",
+            "password": "testpassword"
+        }, content_type="application/json")
+        
+        # Comprobaciones
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.json())
+        self.assertEqual(response.json()["error"], "validation_error")
+        self.assertIn("details", response.json())
+        self.assertIn("username", response.json()["details"])
+        self.assertEqual(response.json()["details"]["username"], "Username already exists")
+
     
