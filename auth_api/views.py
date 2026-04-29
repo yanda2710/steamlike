@@ -24,9 +24,11 @@ def register(request):
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({
-            "error": "Invalid JSON data"
-            }, status=400)
+        data = request.POST # Si no es JSON, intentamos obtener los datos del formulario tradicional
+        
+        # return JsonResponse({
+            # "error": "Invalid JSON data"
+            # }, status=400)
 
     username = data.get("username")
     password = data.get("password")
@@ -81,9 +83,11 @@ def login_view(request):
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({
-            "error": "Invalid JSON data"
-            }, status=400)
+        data = request.POST # Si no es JSON, intentamos obtener los datos del formulario tradicional
+
+        # return JsonResponse({
+            # "error": "Invalid JSON data"
+            # }, status=400)
     
     # Check if username and password are in the request body
     username = data.get("username")
