@@ -1,8 +1,11 @@
+from urllib import response
+
 from django.test import TestCase
 
 import json
 
-from auth_api.views import register, login
+from auth_api.views import User, register, login
+from library.models import LibraryEntry
 
 class LibraryEntryExternalIdLengthTests(TestCase):
     def test_health(self):
@@ -147,3 +150,13 @@ class LibraryEntryViewTests(TestCase):
 
         # Comprobaciones
         self.assertEqual(response.status_code, 201)
+
+    # --- Tests GET /api/library/entries/{external_game_id} (user) ---
+    def test_get_entry_unauthenticated(self):
+        response = self.client.get("/api/library/entries/game123/")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(), {
+            "error": "unauthorized",
+            "message": "No autenticado"
+        })
