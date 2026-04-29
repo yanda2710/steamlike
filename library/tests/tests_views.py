@@ -7,6 +7,8 @@ import json
 from auth_api.views import User, register, login
 from library.models import LibraryEntry
 
+# TODO: TEST PARA REVISAR SEMANA 3
+
 class LibraryEntryExternalIdLengthTests(TestCase):
     def test_health(self):
         # Precondiciones
