@@ -1,10 +1,14 @@
 import json
+import requests
+
 from django.http import JsonResponse
-from .models import LibraryEntry
+
 from django.views.decorators.http import require_GET
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import get_user_model
 
+from .models import LibraryEntry
+
+from django.contrib.auth import get_user_model
 User = get_user_model()
 
 @require_GET
@@ -245,4 +249,48 @@ def update_entry(request, external_game_id):
             "hours_played": entry.hours_played
         }
     }, status=200)
+
+# url /api/catalog/search/
+
+# GET
+    # Search for games in the catalog by name
+    # Query parameter: ?q=game_name
+
+@require_GET
+def search_catalog(request):
+    # Get parameter q from query params
+    query = request.GET.get("q", "")
+
+    # Validate that the query parameter is not empty, if it is, return an error response
+    if query == "":
+        return JsonResponse({
+            "error": "validation_error",
+            "message": "Query parameter 'q' is required and cannot be empty"
+        }, status=400)
+
+    # Call to API
+    response = requests.get("https://www.cheapshark.com/api/1.0/games", params={"title": query, "limit": 10})
+
+    try:
+        data = response.json()
+
+        results = []
+
+        for game in data:
+            results.append({
+                "external_game_id": game.get("gameID"),
+                "title": game.get("external"),
+                "cheapest_price": game.get("cheapest"),
+                "thumb": f"https://store.steampowered.com/app/{game.get('steamAppID')}" if game.get("steamAppID") else None,
+                "steam_link": f"https://store.steampowered.com/app/{game.get('steamAppID')}" if game.get("steamAppID") else None
+            })
+        
+        return JsonResponse({"results": results}, status=200)
+    
+    except requests.RequestException as e:
+        return JsonResponse({
+            "error": "api_error",
+            "message": "Error fetching data from API"
+        }, status=500)
+
 

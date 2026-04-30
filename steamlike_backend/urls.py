@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.urls import path, include
+
 from library.views import health
-from library.views import games, game_detailed
+from library.views import games, game_detailed, search_catalog
 
 from auth_api.views import register, login_view, check_login
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -18,4 +20,5 @@ urlpatterns = [
     # Library API
     path("api/library/entries/", games),
     path("api/library/entries/<str:external_game_id>/", game_detailed),
+    path("api/catalog/search/", search_catalog),
 ]
