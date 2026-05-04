@@ -327,7 +327,8 @@ def resolve_games(request):
         try:
             response = requests.get(
                 "https://www.cheapshark.com/api/1.0/games",
-                params={"id": game_id}
+                params={"id": game_id},
+                timeout=5
             )
 
             if response.status_code != 200:
