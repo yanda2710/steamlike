@@ -30,6 +30,28 @@ def duplicate_entry_response():
         "details": {"external_game_id": "duplicate"}
     }, status=400)
 
+def errors_management(response):
+    if response.status_code == 503:
+        return JsonResponse({
+            "error": "external_service_unaviable",
+            "message": "El catálogo externo no está disponible. Inténtalo más tarde."
+        })
+
+    if response.status_code == 502:
+        return JsonResponse({
+            "error": "external_service_error",
+            "message": "Error al consultar el catálogo externo."
+        }, status=502)
+    
+    if response.status_code == 400:
+        return JsonResponse({
+            "error": "invalid_external_game_id",
+            "message": "El juego indicado no eciste en el catálodo externo.",
+            "details": {
+                "external_game_id": "not_found"
+            }
+        }, status=400)
+
 # url /library/entries
 
 # GET
@@ -269,7 +291,15 @@ def search_catalog(request):
         }, status=400)
 
     # Call to API
-    response = requests.get("https://www.cheapshark.com/api/1.0/games", params={"title": query, "limit": 10})
+    response = requests.get(
+        "https://www.cheapshark.com/api/1.0/games",
+        params = {
+            "title": query,
+            "limit": 10
+        })
+
+    if response.status_code != 200:
+        return errors_management(response)
 
     try:
         data = response.json()
@@ -332,7 +362,7 @@ def resolve_games(request):
             )
 
             if response.status_code != 200:
-                continue
+                return errors_management(response)
 
             game_data = response.json()
 

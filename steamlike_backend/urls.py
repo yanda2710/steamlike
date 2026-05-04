@@ -20,6 +20,6 @@ urlpatterns = [
     # Library API
     path("api/library/entries/", games),
     path("api/library/entries/<str:external_game_id>/", game_detailed),
-    path("api/catalog/search/", search_catalog),
-    path("api/catalog/resolve/", resolve_games),
+    path("api/catalog/search/", search_catalog), # type: ignore -> había un falso positivo de error
+    path("api/catalog/resolve/", resolve_games), # type: ignore
 ]
