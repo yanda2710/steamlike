@@ -20,7 +20,8 @@ def _env_csv(name: str, default_csv: str = "") -> list[str]:
 SECRET_KEY = _env("DJANGO_SECRET_KEY", "change-me")
 DEBUG = _env_bool("DJANGO_DEBUG", True)
 
-ALLOWED_HOSTS = _env_csv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+# ALLOWED_HOSTS = _env_csv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
     # Django
