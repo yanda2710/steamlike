@@ -293,4 +293,62 @@ def search_catalog(request):
             "message": "Error fetching data from API"
         }, status=500)
 
+# url /api/catalog/resolve/
+
+    # POST
+        # Resolve a bunch of external_game_id's to get their details from the API
+        # json body: { "external_game_ids": ["str", "str", ...] } Obligatorio y no vacío
+
+@csrf_exempt
+def resolve_games(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request method"}, status=400)
+
+    # Get all data from request
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            "error": "Invalid JSON data"
+            }, status=400)
+
+    external_game_ids = data.get("external_game_ids")
+
+    # Validate that external_game_ids is provided and is a non-empty list of strings
+    if not external_game_ids or not isinstance(external_game_ids, list) or not all(isinstance(id, str) for id in external_game_ids):
+        return JsonResponse({
+            "error": "validation_error",
+            "message": "Field 'external_game_ids' is required and must be a non-empty list of strings"
+        }, status=400)
+
+    resolved_games = []
+
+    for game_id in external_game_ids:
+        try:
+            response = requests.get(
+                "https://www.cheapshark.com/api/1.0/games",
+                params={"id": game_id}
+            )
+
+            if response.status_code != 200:
+                continue
+
+            game_data = response.json()
+
+            data = game_data.get("info", {})
+
+            steam_app_id = data.get("steamAppID")
+
+            resolved_games.append({
+                "external_game_id": steam_app_id,
+                "title": data.get("title"),
+                "thumb": f"https://store.steampowered.com/app/{steam_app_id}" if steam_app_id else None,
+            })
+
+        except requests.RequestException:
+            continue
+
+    return JsonResponse({"resolved_games": resolved_games}, status=200)
+
+
 
