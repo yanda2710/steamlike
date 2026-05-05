@@ -24,8 +24,6 @@ jobs:
       - name: Run Django tests
         run: |
           python manage.py test
-        env:
-          DATABASE_URL: sqlite:///:memory
 
   deploy:
     runs-on: ubuntu-latest
