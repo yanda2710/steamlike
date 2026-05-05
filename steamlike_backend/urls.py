@@ -4,7 +4,7 @@ from django.urls import path, include
 from library.views import health
 from library.views import games, game_detailed, search_catalog, resolve_games
 
-from auth_api.views import register, login_view, check_login
+from auth_api.views import register, login_view, check_login, send_email
 
 
 urlpatterns = [
@@ -16,6 +16,7 @@ urlpatterns = [
     path("api/auth/register/", register),
     path("api/auth/login/", login_view),
     path("api/users/me/", check_login),
+    path("api/email/send/", send_email),
     
     # Library API
     path("api/library/entries/", games),
