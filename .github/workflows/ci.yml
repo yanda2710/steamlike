@@ -25,7 +25,7 @@ jobs:
         run: |
           python manage.py test
         env:
-          DATABASE_URL: sqlite:///:memory:
+          DATABASE_URL: sqlite:///:memory
 
   deploy:
     runs-on: ubuntu-latest
