@@ -4,7 +4,8 @@ from django.urls import path, include
 from library.views import health
 from library.views import games, game_detailed, search_catalog, resolve_games
 
-from auth_api.views import register, login_view, check_login, send_email
+from auth_api.views import register, login_view, check_login
+from auth_api.utils import send_email
 
 
 urlpatterns = [

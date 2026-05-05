@@ -5,14 +5,13 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
+from auth_api.utils import send_email_service
+
 # Importamos el modelo de usuario
 from django.contrib.auth import authenticate, login, get_user_model
 User = get_user_model()
 
 from library.views import error_response
-
-MAILEROO_URL = "https://smtp.maileroo.com/api/v2/emails" # Para enviar correos
-logger = logging.getLogger(__name__)
 
 # POST /api/auth/register/
     # Register a new user
@@ -25,7 +24,7 @@ def register(request):
     
     # Get all data from request
     try:
-        data = json.loads(request.body)
+        data = json.loads(request.body.decode("utf-8"))
     except json.JSONDecodeError:
         data = request.POST # Si no es JSON, intentamos obtener los datos del formulario tradicional
         
@@ -35,6 +34,7 @@ def register(request):
 
     username = data.get("username")
     password = data.get("password")
+    email = data.get("email")
 
     # Diccionary to store all errors, it's JSON
     errors = {}
@@ -55,6 +55,13 @@ def register(request):
     elif len(password) < 8: # Check if it's at least 8 characters long
         errors["password"] = "Must be at least 8 characters long"
 
+    # Check email format
+    if email == "" or email is None:
+        errors["email"] = "Cannot be empty"
+    elif not isinstance(email, str):
+        errors["email"] = "Must be a string"
+    # Actualmente no está comprobando que el correo exista, por pruebas ignoraremos este caso
+
     # If there are errors, return them
     if errors:
         return error_response(errors)
@@ -63,6 +70,12 @@ def register(request):
     user = User.objects.create_user(
         username=username,
         password=password
+    )
+    
+    send_email_service(
+        to=email,
+        subject="Welcome email",
+        text="This is not spam"
     )
 
     return JsonResponse({
@@ -75,7 +88,7 @@ def register(request):
 
 # POST /api/auth/login/
     # Login a user, change its behavior in the future to return a token or something like that
-    # json body: { "username": "str", "password": "str" }
+    # json body: { "username": "str", "password": "str", "email": "str"}
 
 @csrf_exempt
 def login_view(request):
@@ -150,44 +163,3 @@ def check_login(request):
         "username": request.user.username
     }, status=200)
 
-
-# url api/email/send/
-
-@csrf_exempt
-@require_POST
-def send_email(request):
-    data = json.loads(request.body)
-    to = data["to"]
-    subject = data["subject"]
-    text = data["text"]
-
-    headers = {
-        "X-API-Key": os.getenv("MAILEROO_TOKEN", ""),
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "from": {"address": os.getenv("MAILEROO_FROM_ADDRESS", "")},
-        "to": [{"address": to}],
-        "subject": subject,
-        "plain": text
-    }
-
-    try:
-        r = requests.post(MAILEROO_URL, headers=headers, json=payload, timeout=10)
-
-    except requests.RequestException:
-        return JsonResponse({
-            "error": "external_service_unavailable",
-        }, status=503)
-
-    if r.status_code >= 400:
-        logger.error('send_email: external_service_error to="%s" status=%s body="%s"', to, r.status_code, r.text[:200])
-        return JsonResponse({
-            "message": "external_service_error",
-        }, status=502)
-    
-    logger.info('send_email: ok to="%s" status=%s', to, r.status_code, r.text[:200])
-    return JsonResponse({
-        "ok": True
-    }, status=200)
