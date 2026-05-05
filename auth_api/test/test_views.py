@@ -13,7 +13,8 @@ class AuthenticationTests(TestCase):
         # Llamada (usando self.client y la ruta de la vista que queremos probar)
         response = self.client.post("/api/auth/register/", data={
             "username": "testuser",
-            "password": "testpassword"
+            "password": "testpassword",
+            "email": "testmail@dom.com"
         }, content_type="application/json")
 
         # Comprobaciones
