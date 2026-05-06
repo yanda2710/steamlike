@@ -332,7 +332,7 @@ def search_catalog(request):
 @csrf_exempt
 def resolve_games(request):
     if request.method != "POST":
-        return JsonResponse({"error": "Invalid request method"}, status=400)
+        return JsonResponse({"error": "Invalid request method"}, status=405)
 
     # Get all data from request
     try:
