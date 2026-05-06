@@ -71,14 +71,25 @@ class CatalogService:
     @staticmethod
     def resolve_games(external_game_ids):
 
+        if not external_game_ids:
+            return []
+
         resolved_games = []
 
         for game_id in external_game_ids:
+
+            cache_key = f"game_{game_id}"
+            cached_game = cache.get(cache_key)
+
+            if cached_game:
+                resolved_games.append(cached_game)
+                continue
+
             try:
                 response = requests.get(
                     "https://www.cheapshark.com/api/1.0/games",
                     params={"id": game_id},
-                    timeout=5
+                    timeout=10
                 )
 
                 if response.status_code == 503:
@@ -89,15 +100,17 @@ class CatalogService:
                     return CatalogService().response_error500()
 
                 game_data = response.json()
-
                 data = game_data.get("info", {})
                 steam_app_id = data.get("steamAppID")
 
-                resolved_games.append({
+                game = {
                     "external_game_id": steam_app_id,
                     "title": data.get("title"),
                     "thumb": f"https://store.steampowered.com/app/{steam_app_id}" if steam_app_id else None,
-                })
+                }
+
+                cache.set(cache_key, game, timeout=3600)
+                resolved_games.append(game)
 
             except requests.RequestException:
                 return CatalogService().response_error500()

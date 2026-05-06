@@ -306,15 +306,14 @@ def search_catalog(request):
 def resolve_games(request):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid request method"}, status=400)
-    
-    # Get all data from request
+
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
         return JsonResponse({
             "error": "Invalid JSON data"
-            }, status=400)
-    
+        }, status=400)
+
     external_game_ids = data.get("external_game_ids")
 
     if not external_game_ids:
@@ -322,11 +321,10 @@ def resolve_games(request):
             "error": "validation_error",
             "message": "Field 'external_game_ids' is required and cannot be empty"
         }, status=400)
-    
-    service = CatalogService()
-    resolved_games = service.resolve_games(external_game_ids)
 
-    return JsonResponse({"resolved_games": resolved_games}, safe=False, status=200)
+    resolved_games = CatalogService.resolve_games(external_game_ids)
+
+    return JsonResponse({"resolved_games": resolved_games}, status=200)
 
 
 
