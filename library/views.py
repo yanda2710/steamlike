@@ -5,6 +5,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from django.views.decorators.csrf import csrf_exempt
 
+from library.catalog_service import CatalogService
+
 from .models import LibraryEntry
 
 from django.contrib.auth import get_user_model
@@ -281,54 +283,18 @@ def update_entry(request, external_game_id):
 
 @require_GET
 def search_catalog(request):
-    # Get parameter q from query params
+
     query = request.GET.get("q", "")
 
-    cache_key = f"search_{query}"
-    cached_response = cache.get(cache_key)
-
-    if cached_response:
-        return JsonResponse(cached_response, status=200)
-
-    # Validate that the query parameter is not empty, if it is, return an error response
-    if query == "":
+    if not query:
         return JsonResponse({
             "error": "validation_error",
             "message": "Query parameter 'q' is required and cannot be empty"
         }, status=400)
 
-    # Call to API
-    response = requests.get(
-        "https://www.cheapshark.com/api/1.0/games",
-        params = {
-            "title": query,
-            "limit": 10
-        })
+    data = CatalogService.search_catalog(query)
 
-    if response.status_code != 200:
-        return errors_management(response)
-
-    try:
-        data = response.json()
-
-        results = []
-
-        for game in data:
-            results.append({
-                "external_game_id": game.get("gameID"),
-                "title": game.get("external"),
-                "cheapest_price": game.get("cheapest"),
-                "thumb": f"https://store.steampowered.com/app/{game.get('steamAppID')}" if game.get("steamAppID") else None,
-                "steam_link": f"https://store.steampowered.com/app/{game.get('steamAppID')}" if game.get("steamAppID") else None
-            })
-        
-        return JsonResponse({"results": results}, status=200)
-    
-    except requests.RequestException as e:
-        return JsonResponse({
-            "error": "api_error",
-            "message": "Error fetching data from API"
-        }, status=500)
+    return JsonResponse({"results": data}, status=200)
 
 # url /api/catalog/resolve/
 
@@ -339,8 +305,8 @@ def search_catalog(request):
 @csrf_exempt
 def resolve_games(request):
     if request.method != "POST":
-        return JsonResponse({"error": "Invalid request method"}, status=405)
-
+        return JsonResponse({"error": "Invalid request method"}, status=400)
+    
     # Get all data from request
     try:
         data = json.loads(request.body)
@@ -348,45 +314,19 @@ def resolve_games(request):
         return JsonResponse({
             "error": "Invalid JSON data"
             }, status=400)
-
+    
     external_game_ids = data.get("external_game_ids")
 
-    # Validate that external_game_ids is provided and is a non-empty list of strings
-    if not external_game_ids or not isinstance(external_game_ids, list) or not all(isinstance(id, str) for id in external_game_ids):
+    if not external_game_ids:
         return JsonResponse({
             "error": "validation_error",
-            "message": "Field 'external_game_ids' is required and must be a non-empty list of strings"
+            "message": "Field 'external_game_ids' is required and cannot be empty"
         }, status=400)
+    
+    service = CatalogService()
+    resolved_games = service.resolve_games(external_game_ids)
 
-    resolved_games = []
-
-    for game_id in external_game_ids:
-        try:
-            response = requests.get(
-                "https://www.cheapshark.com/api/1.0/games",
-                params={"id": game_id},
-                timeout=5
-            )
-
-            if response.status_code != 200:
-                return errors_management(response)
-
-            game_data = response.json()
-
-            data = game_data.get("info", {})
-
-            steam_app_id = data.get("steamAppID")
-
-            resolved_games.append({
-                "external_game_id": steam_app_id,
-                "title": data.get("title"),
-                "thumb": f"https://store.steampowered.com/app/{steam_app_id}" if steam_app_id else None,
-            })
-
-        except requests.RequestException:
-            continue
-
-    return JsonResponse({"resolved_games": resolved_games}, status=200)
+    return JsonResponse({"resolved_games": resolved_games}, safe=False, status=200)
 
 
 
