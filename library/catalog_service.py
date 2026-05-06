@@ -4,6 +4,25 @@ from django.core.cache import cache
 
 
 class CatalogService:
+
+    def response_error503(self):
+        return json.dumps({
+            "error": "external_service_unavailable",
+            "message": "El catálogo externo no está disponible. Inténtalo más tarde."
+        })
+
+    def response_error502(self):
+        return json.dumps({
+            "error": "external_service_error",
+            "message": "Error al consultar el catálogo externo. Inténtalo más tarde."
+        })
+    
+    def response_error500(self):
+        return json.dumps({
+            "error": "external_service_error",
+            "message": "Error inesperado al consultar el catálogo externo. Inténtalo más tarde."
+        })
+
     @staticmethod
     def search_catalog(query):
 
@@ -21,8 +40,12 @@ class CatalogService:
             }
         )
 
+        if response.status_code == 503:
+            return CatalogService().response_error503()
+        if response.status_code == 502:
+            return CatalogService().response_error502()
         if response.status_code != 200:
-            return {"error": "api_error"}
+            return CatalogService().response_error500()
 
         try:
             data = response.json()
@@ -43,7 +66,7 @@ class CatalogService:
             return results
 
         except Exception:
-            return {"error": "api_error"}
+            return CatalogService().response_error500()
         
     @staticmethod
     def resolve_games(external_game_ids):
@@ -58,8 +81,12 @@ class CatalogService:
                     timeout=5
                 )
 
+                if response.status_code == 503:
+                    return CatalogService().response_error503()
+                if response.status_code == 502:
+                    return CatalogService().response_error502()
                 if response.status_code != 200:
-                    continue
+                    return CatalogService().response_error500()
 
                 game_data = response.json()
 
@@ -73,6 +100,6 @@ class CatalogService:
                 })
 
             except requests.RequestException:
-                continue
+                return CatalogService().response_error500()
 
         return resolved_games
