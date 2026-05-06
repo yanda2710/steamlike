@@ -1,5 +1,4 @@
-import json
-import requests
+import json, requests
 
 from django.http import JsonResponse
 
@@ -10,6 +9,8 @@ from .models import LibraryEntry
 
 from django.contrib.auth import get_user_model
 User = get_user_model()
+
+from django.core.cache import cache
 
 @require_GET
 def health(request):
@@ -282,6 +283,12 @@ def update_entry(request, external_game_id):
 def search_catalog(request):
     # Get parameter q from query params
     query = request.GET.get("q", "")
+
+    cache_key = f"search_{query}"
+    cached_response = cache.get(cache_key)
+
+    if cached_response:
+        return JsonResponse(cached_response, status=200)
 
     # Validate that the query parameter is not empty, if it is, return an error response
     if query == "":
