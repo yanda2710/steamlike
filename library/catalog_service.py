@@ -1,7 +1,9 @@
 import json
+import logging
 import requests
 from django.core.cache import cache
 
+logger = logging.getLogger(__name__)
 
 class CatalogService:
 
@@ -30,6 +32,7 @@ class CatalogService:
         cached_response = cache.get(cache_key)
 
         if cached_response:
+            logger.info(f"Returning cached results for query: {query}")
             return cached_response
 
         response = requests.get(
@@ -60,6 +63,8 @@ class CatalogService:
                     "thumb": f"https://store.steampowered.com/app/{game.get('steamAppID')}" if game.get("steamAppID") else None,
                     "steam_link": f"https://store.steampowered.com/app/{game.get('steamAppID')}" if game.get("steamAppID") else None
                 })
+
+            logger.info(f"Caching results for query: {query}")
 
             cache.set(cache_key, results, timeout=3600)
 
